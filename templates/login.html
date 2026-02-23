@@ -9,8 +9,8 @@
         <form method="POST" class="stack-form">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
-            <label for="username">Username</label>
-            <input id="username" type="text" name="username" required autocomplete="username">
+            <label for="username">Username or Email</label>
+            <input id="username" type="text" name="username" required autocomplete="username" placeholder="username or you@gmail.com">
 
             <label for="password">Password</label>
             <input id="password" type="password" name="password" required autocomplete="current-password">

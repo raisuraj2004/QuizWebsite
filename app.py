@@ -185,6 +185,10 @@ def clean_text(value, max_len):
     return (value or "").strip()[:max_len]
 
 
+def normalize_email(value):
+    return clean_text(value, 120).lower()
+
+
 def parse_quiz_code(raw_code):
     code = (raw_code or "").strip().upper()
     if re.fullmatch(r"[A-Z0-9]{6}", code):
@@ -230,7 +234,7 @@ def register():
             return redirect(url_for("register"))
 
         username = clean_text(request.form.get("username"), 30)
-        email = clean_text(request.form.get("email"), 120)
+        email = normalize_email(request.form.get("email"))
         password = request.form.get("password", "")
 
         if not re.fullmatch(r"[A-Za-z0-9_]{3,30}", username):
@@ -286,7 +290,7 @@ def login():
             flash("Too many login attempts. Try again in a minute.", "error")
             return redirect(url_for("login"))
 
-        username = clean_text(request.form.get("username"), 30)
+        login_id = clean_text(request.form.get("username"), 120)
         password = request.form.get("password", "")
 
         db = get_db()
@@ -295,9 +299,9 @@ def login():
             """
             SELECT id, username, role, password_hash
             FROM users
-            WHERE username = ?
+            WHERE username = ? OR LOWER(email) = LOWER(?)
             """,
-            (username,),
+            (login_id, login_id),
         )
         user = cur.fetchone()
         db.close()
