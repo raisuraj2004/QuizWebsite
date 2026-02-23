@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="card-shell narrow">
+    <div class="card-shell-header">
+        <h2>Build Quiz with AI</h2>
+        <p class="muted">Generate a full draft quiz from a topic using an LLM.</p>
+    </div>
+
+    <form method="POST" action="{{ url_for('create_quiz_ai') }}" class="stack-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        <label for="ai_topic">Topic</label>
+        <input id="ai_topic" type="text" name="topic" placeholder="e.g. Python Data Structures" required>
+
+        <label for="ai_title">Quiz Title</label>
+        <input id="ai_title" type="text" name="title" placeholder="Optional custom title">
+
+        <label for="ai_description">Description</label>
+        <textarea id="ai_description" name="description" rows="3" placeholder="Optional quiz description"></textarea>
+
+        <label for="ai_count">Question Count (1-15)</label>
+        <input id="ai_count" type="number" name="question_count" min="1" max="15" value="5">
+
+        <div class="actions-inline">
+            <button type="submit" class="btn primary">Generate with AI</button>
+            <a href="{{ url_for('dashboard') }}" class="btn ghost">Back to Dashboard</a>
+        </div>
+    </form>
+</section>
+{% endblock %}

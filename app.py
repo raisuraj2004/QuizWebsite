@@ -21,6 +21,7 @@ except ImportError:
 from werkzeug.exceptions import RequestEntityTooLarge
 
 from utils.auth import hash_password, verify_password
+from utils import ai_quiz
 from utils.db import get_db, get_cursor, insert_and_get_id
 from utils.migrations import run_migrations
 
@@ -576,6 +577,88 @@ def create_quiz():
         return redirect(url_for("add_question", quiz_id=quiz_id))
 
     return render_template("create_quiz.html", title="Create Quiz")
+
+
+@app.route("/create_quiz_ai", methods=["GET", "POST"])
+@login_required
+def create_quiz_ai():
+    if request.method == "GET":
+        return render_template("create_quiz_ai.html", title="Build Quiz with AI")
+
+    if not validate_csrf():
+        flash("Invalid form session. Try again.", "error")
+        return redirect(url_for("create_quiz"))
+
+    if not rate_limit("ai_quiz_limit", limit=4, window=300):
+        flash("AI generation rate limit reached. Try again later.", "error")
+        return redirect(url_for("create_quiz"))
+
+    topic = clean_text(request.form.get("topic"), 120)
+    title = clean_text(request.form.get("title"), 100) or f"{topic.title()} Quiz"
+    description = clean_text(request.form.get("description"), 300)
+
+    try:
+        total_questions = int(request.form.get("question_count", "5"))
+    except ValueError:
+        total_questions = 5
+    total_questions = max(1, min(total_questions, 15))
+
+    if len(topic) < 3:
+        flash("Topic must be at least 3 characters.", "error")
+        return redirect(url_for("create_quiz"))
+
+    try:
+        generated_questions = ai_quiz.generate_quiz_questions(topic, total_questions)
+    except Exception as err:
+        logger.exception("AI generation failed for topic=%s", topic)
+        flash(str(err), "error")
+        return redirect(url_for("create_quiz"))
+
+    db = get_db()
+    cur = get_cursor(db)
+    try:
+        quiz_id = insert_and_get_id(
+            cur,
+            """
+            INSERT INTO quizzes (title, description, host_id, status)
+            VALUES (?, ?, ?, 'draft')
+            """,
+            (title, description, session["user_id"]),
+        )
+
+        for item in generated_questions:
+            question_id = insert_and_get_id(
+                cur,
+                """
+                INSERT INTO questions (quiz_id, question_text)
+                VALUES (?, ?)
+                """,
+                (quiz_id, item["question"]),
+            )
+
+            for idx, option in enumerate(item["options"]):
+                cur.execute(
+                    """
+                    INSERT INTO options (question_id, option_text, is_correct)
+                    VALUES (?, ?, ?)
+                    """,
+                    (question_id, option, 1 if idx == item["correct_index"] else 0),
+                )
+
+        db.commit()
+    except Exception:
+        db.rollback()
+        logger.exception("Failed saving AI-generated quiz.")
+        flash("Could not save generated quiz. Try again.", "error")
+        db.close()
+        return redirect(url_for("create_quiz"))
+
+    db.close()
+    flash(
+        f"AI quiz created with {len(generated_questions)} questions. Review and publish when ready.",
+        "success",
+    )
+    return redirect(url_for("add_question", quiz_id=quiz_id))
 
 
 @app.route("/add_question/<int:quiz_id>", methods=["GET", "POST"])
