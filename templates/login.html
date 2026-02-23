@@ -4,7 +4,10 @@
 <section class="auth-shell">
     <div class="auth-card">
         <h1>Sign in</h1>
-        <p class="muted">Access your dashboard, publish quizzes, and track results.</p>
+        <p class="muted">Use a verified Gmail account. You can sign in directly with Google.</p>
+
+        <a href="{{ url_for('login_google') }}" class="btn google full">Continue with Google</a>
+        <p class="muted auth-divider">or use Gmail + password</p>
 
         <form method="POST" class="stack-form">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">

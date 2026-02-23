@@ -4,7 +4,10 @@
 <section class="auth-shell">
     <div class="auth-card">
         <h1>Create account</h1>
-        <p class="muted">Start creating and sharing quizzes with unique join codes.</p>
+        <p class="muted">Only verified Gmail accounts are allowed.</p>
+
+        <a href="{{ url_for('login_google') }}" class="btn google full">Sign up with Google</a>
+        <p class="muted auth-divider">or register with Gmail + password</p>
 
         <form method="POST" class="stack-form">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
@@ -13,7 +16,7 @@
             <input id="username" type="text" name="username" required autocomplete="username">
 
             <label for="email">Email</label>
-            <input id="email" type="email" name="email" required autocomplete="email">
+            <input id="email" type="email" name="email" required autocomplete="email" placeholder="you@gmail.com">
 
             <label for="password">Password</label>
             <input id="password" type="password" name="password" required autocomplete="new-password">

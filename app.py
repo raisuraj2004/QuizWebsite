@@ -10,6 +10,11 @@ from functools import wraps
 from urllib.parse import urlparse
 
 try:
+    from authlib.integrations.flask_client import OAuth
+except ImportError:
+    OAuth = None
+
+try:
     import redis
 except ImportError:
     redis = None
@@ -46,6 +51,8 @@ _rate_buckets = defaultdict(deque)
 _redis_client = None
 redis_url = os.getenv("REDIS_URL", "").strip()
 trust_proxy = os.getenv("TRUST_PROXY", "0") == "1"
+google_client_id = os.getenv("GOOGLE_CLIENT_ID", "").strip()
+google_client_secret = os.getenv("GOOGLE_CLIENT_SECRET", "").strip()
 
 if flask_env == "production" and not redis_url:
     raise RuntimeError("REDIS_URL must be set in production.")
@@ -71,6 +78,20 @@ if redis_url:
             if flask_env == "production":
                 raise RuntimeError("Unable to connect to Redis in production.") from redis_err
             logger.warning("Redis unavailable, falling back to in-memory rate limiting: %s", redis_err)
+
+oauth = None
+google_oauth_enabled = bool(google_client_id and google_client_secret and OAuth is not None)
+if google_oauth_enabled:
+    oauth = OAuth(app)
+    oauth.register(
+        name="google",
+        client_id=google_client_id,
+        client_secret=google_client_secret,
+        server_metadata_url="https://accounts.google.com/.well-known/openid-configuration",
+        client_kwargs={"scope": "openid email profile"},
+    )
+elif flask_env == "production":
+    logger.warning("Google OAuth is not fully configured. Set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET.")
 
 
 def get_client_ip():
@@ -189,6 +210,22 @@ def normalize_email(value):
     return clean_text(value, 120).lower()
 
 
+def is_gmail_address(email):
+    return bool(email and re.fullmatch(r"[a-z0-9._%+-]+@gmail\.com", email))
+
+
+def unique_username_from_email(cur, email):
+    base = re.sub(r"[^A-Za-z0-9_]", "_", email.split("@")[0])[:24] or "user"
+    candidate = base
+    suffix = 0
+    while True:
+        cur.execute("SELECT id FROM users WHERE username = ?", (candidate,))
+        if not cur.fetchone():
+            return candidate
+        suffix += 1
+        candidate = f"{base[:24-len(str(suffix))]}{suffix}"
+
+
 def parse_quiz_code(raw_code):
     code = (raw_code or "").strip().upper()
     if re.fullmatch(r"[A-Z0-9]{6}", code):
@@ -241,8 +278,8 @@ def register():
             flash("Username must be 3-30 characters and use letters, numbers, or _.", "error")
             return redirect(url_for("register"))
 
-        if "@" not in email or len(email) < 5:
-            flash("Enter a valid email address.", "error")
+        if not is_gmail_address(email):
+            flash("Only real Gmail addresses are allowed (example: name@gmail.com).", "error")
             return redirect(url_for("register"))
 
         if len(password) < 8:
@@ -257,8 +294,8 @@ def register():
             cur = get_cursor(db)
             cur.execute(
                 """
-                INSERT INTO users (username, email, password_hash)
-                VALUES (?, ?, ?)
+                INSERT INTO users (username, email, password_hash, email_verified)
+                VALUES (?, ?, ?, 1)
                 """,
                 (username, email, hashed),
             )
@@ -293,11 +330,15 @@ def login():
         login_id = clean_text(request.form.get("username"), 120)
         password = request.form.get("password", "")
 
+        if "@" in login_id and not is_gmail_address(normalize_email(login_id)):
+            flash("Only Gmail login is supported.", "error")
+            return redirect(url_for("login"))
+
         db = get_db()
         cur = get_cursor(db)
         cur.execute(
             """
-            SELECT id, username, role, password_hash
+            SELECT id, username, role, password_hash, email_verified
             FROM users
             WHERE username = ? OR LOWER(email) = LOWER(?)
             """,
@@ -306,7 +347,7 @@ def login():
         user = cur.fetchone()
         db.close()
 
-        if user and verify_password(password, user["password_hash"]):
+        if user and user["email_verified"] == 1 and verify_password(password, user["password_hash"]):
             session["user_id"] = user["id"]
             session["username"] = user["username"]
             session["role"] = user["role"]
@@ -315,6 +356,89 @@ def login():
         flash("Invalid username or password.", "error")
 
     return render_template("login.html", title="Login")
+
+
+@app.route("/login/google")
+def login_google():
+    if not google_oauth_enabled:
+        flash("Google login is not configured by the server.", "error")
+        return redirect(url_for("login"))
+
+    redirect_uri = url_for("google_auth_callback", _external=True)
+    return oauth.google.authorize_redirect(redirect_uri)
+
+
+@app.route("/auth/google/callback")
+def google_auth_callback():
+    if not google_oauth_enabled:
+        flash("Google login is not configured by the server.", "error")
+        return redirect(url_for("login"))
+
+    try:
+        token = oauth.google.authorize_access_token()
+        userinfo = token.get("userinfo")
+        if not userinfo:
+            userinfo = oauth.google.get("userinfo").json()
+    except Exception:
+        logger.exception("Google OAuth callback failed.")
+        flash("Google login failed. Try again.", "error")
+        return redirect(url_for("login"))
+
+    email = normalize_email(userinfo.get("email"))
+    if not userinfo.get("email_verified") or not is_gmail_address(email):
+        flash("Google account must be a verified Gmail address.", "error")
+        return redirect(url_for("login"))
+
+    google_sub = clean_text(userinfo.get("sub"), 128)
+    if not google_sub:
+        flash("Google account response is invalid.", "error")
+        return redirect(url_for("login"))
+
+    db = get_db()
+    cur = get_cursor(db)
+    cur.execute(
+        """
+        SELECT id, username, role
+        FROM users
+        WHERE google_id = ? OR LOWER(email) = LOWER(?)
+        """,
+        (google_sub, email),
+    )
+    user = cur.fetchone()
+
+    if user:
+        cur.execute(
+            """
+            UPDATE users
+            SET google_id = ?, email_verified = 1
+            WHERE id = ?
+            """,
+            (google_sub, user["id"]),
+        )
+        user_id = user["id"]
+        username = user["username"]
+        role = user["role"]
+    else:
+        username = unique_username_from_email(cur, email)
+        random_password_hash = hash_password(secrets.token_urlsafe(32))
+        user_id = insert_and_get_id(
+            cur,
+            """
+            INSERT INTO users (username, email, password_hash, role, google_id, email_verified)
+            VALUES (?, ?, ?, 'user', ?, 1)
+            """,
+            (username, email, random_password_hash, google_sub),
+        )
+        role = "user"
+
+    db.commit()
+    db.close()
+
+    session["user_id"] = user_id
+    session["username"] = username
+    session["role"] = role
+    flash("Signed in with Google.", "success")
+    return redirect(url_for("dashboard"))
 
 
 @app.route("/logout", methods=["POST"])

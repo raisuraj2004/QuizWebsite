@@ -17,7 +17,7 @@ def test_register_login_logout_flow(client):
         data={
             "csrf_token": csrf,
             "username": "user_one",
-            "email": "user1@example.com",
+            "email": "user1@gmail.com",
             "password": "strong-pass-123",
         },
         follow_redirects=False,
@@ -46,7 +46,7 @@ def test_create_publish_and_delete_quiz(client):
         data={
             "csrf_token": csrf,
             "username": "quiz_admin",
-            "email": "quiz_admin@example.com",
+            "email": "quiz_admin@gmail.com",
             "password": "strong-pass-123",
         },
         follow_redirects=False,

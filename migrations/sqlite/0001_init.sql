@@ -3,7 +3,9 @@ CREATE TABLE IF NOT EXISTS users (
     username TEXT UNIQUE NOT NULL,
     email TEXT UNIQUE NOT NULL,
     password_hash TEXT NOT NULL,
-    role TEXT DEFAULT 'user'
+    role TEXT DEFAULT 'user',
+    google_id TEXT UNIQUE,
+    email_verified INTEGER DEFAULT 0
 );
 
 CREATE TABLE IF NOT EXISTS quizzes (

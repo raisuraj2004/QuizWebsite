@@ -1,0 +1,4 @@
+ALTER TABLE users ADD COLUMN IF NOT EXISTS google_id VARCHAR(128);
+ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verified INTEGER DEFAULT 0;
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_users_google_id ON users(google_id);

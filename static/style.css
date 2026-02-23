@@ -370,6 +370,21 @@ select:focus {
     background: #912018;
 }
 
+.btn.google {
+    background: #fff;
+    border-color: var(--line);
+    color: #1f2937;
+}
+
+[data-theme="dark"] .btn.google {
+    background: #15243a;
+    color: #e7eefb;
+}
+
+.btn.google:hover {
+    border-color: #3b82f6;
+}
+
 .btn.link {
     background: transparent;
     color: var(--primary-strong);
@@ -485,6 +500,12 @@ select:focus {
 .auth-footer {
     margin-top: 14px;
     color: var(--muted);
+}
+
+.auth-divider {
+    margin: 12px 0 8px;
+    text-align: center;
+    font-size: 0.9rem;
 }
 
 .auth-footer a {
