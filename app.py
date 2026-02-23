@@ -601,7 +601,7 @@ def create_quiz_ai():
         total_questions = int(request.form.get("question_count", "5"))
     except ValueError:
         total_questions = 5
-    total_questions = max(1, min(total_questions, 15))
+    total_questions = max(1, min(total_questions, 30))
 
     if len(topic) < 3:
         flash("Topic must be at least 3 characters.", "error")
