@@ -1,0 +1,43 @@
+services:
+  app:
+    build: .
+    env_file:
+      - .env
+    environment:
+      FLASK_ENV: production
+      TRUST_PROXY: "1"
+    depends_on:
+      - db
+      - redis
+    restart: unless-stopped
+
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: quizplatform
+      POSTGRES_USER: quiz
+      POSTGRES_PASSWORD: quiz
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+
+  nginx:
+    image: nginx:1.27-alpine
+    ports:
+      - "80:80"
+    depends_on:
+      - app
+    volumes:
+      - ./deploy/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  redis_data:

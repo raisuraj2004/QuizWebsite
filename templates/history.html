@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="card-shell">
+    <div class="card-shell-header">
+        <h2>Your Quiz History</h2>
+        <p class="muted">Recent quiz attempts and scores.</p>
+    </div>
+
+    {% if attempts %}
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Quiz</th>
+                        <th>Score</th>
+                        <th>Percent</th>
+                        <th>Attempted At</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for a in attempts %}
+                        <tr>
+                            <td>{{ a.title }}</td>
+                            <td>{{ a.score }} / {{ a.total }}</td>
+                            <td>
+                                {% if a.total > 0 %}
+                                    {{ ((a.score / a.total) * 100)|round(1) }}%
+                                {% else %}
+                                    0%
+                                {% endif %}
+                            </td>
+                            <td>{{ a.attempted_at }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <p class="muted">No quiz attempts yet.</p>
+    {% endif %}
+</section>
+{% endblock %}

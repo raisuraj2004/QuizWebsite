@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="card-shell">
+    <div class="card-shell-header">
+        <h2>{{ quiz.title }}</h2>
+        <p class="muted">Answer any questions you want. You can leave questions unanswered and submit anytime.</p>
+    </div>
+
+    <form method="POST" action="{{ url_for('submit_quiz') }}" class="quiz-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="quiz_id" value="{{ quiz_id }}">
+
+        {% for q in questions %}
+            <article class="question-card">
+                <h4>{{ loop.index }}. {{ q.text }}</h4>
+
+                <div class="option-list">
+                    {% for option in q.options %}
+                        <label class="option-item">
+                            <input type="radio" name="q_{{ q.id }}" value="{{ option.id }}">
+                            <span>{{ option.option_text }}</span>
+                        </label>
+                    {% endfor %}
+                </div>
+            </article>
+        {% endfor %}
+
+        <button type="submit" class="btn primary">Submit Quiz</button>
+    </form>
+</section>
+{% endblock %}

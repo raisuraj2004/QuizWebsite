@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block body_class %}auth-page{% endblock %}
+{% block content %}
+<section class="auth-shell">
+    <div class="auth-card">
+        <h1>Sign in</h1>
+        <p class="muted">Access your dashboard, publish quizzes, and track results.</p>
+
+        <form method="POST" class="stack-form">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+            <label for="username">Username</label>
+            <input id="username" type="text" name="username" required autocomplete="username">
+
+            <label for="password">Password</label>
+            <input id="password" type="password" name="password" required autocomplete="current-password">
+
+            <button class="btn primary full" type="submit">Login</button>
+        </form>
+
+        <p class="auth-footer">No account yet? <a href="{{ url_for('register') }}">Create one</a></p>
+    </div>
+</section>
+{% endblock %}

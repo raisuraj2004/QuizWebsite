@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="card-shell narrow">
+    <div class="card-shell-header">
+        <h2>Create Quiz</h2>
+        <p class="muted">Draft your quiz details first. You can publish after adding questions.</p>
+    </div>
+
+    <form method="POST" class="stack-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        <label for="title">Title</label>
+        <input id="title" type="text" name="title" placeholder="e.g. Python Fundamentals" required>
+
+        <label for="description">Description</label>
+        <textarea id="description" name="description" rows="4" placeholder="What is this quiz about?"></textarea>
+
+        <button type="submit" class="btn primary">Create Quiz</button>
+    </form>
+</section>
+{% endblock %}

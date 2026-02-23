@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="hero-row">
+    <div>
+        <h1>Quiz Dashboard</h1>
+        <p class="muted">Create, publish, and share quizzes instantly with join codes.</p>
+    </div>
+    <div class="actions-inline">
+        <a href="{{ url_for('join_quiz') }}" class="btn ghost">Join by Code</a>
+        <a href="{{ url_for('create_quiz') }}" class="btn primary">Create Quiz</a>
+    </div>
+</section>
+
+<section class="stats-grid">
+    <article class="stat-card">
+        <p>Total Quizzes</p>
+        <h2>{{ stats.total_quizzes }}</h2>
+    </article>
+    <article class="stat-card">
+        <p>Published</p>
+        <h2>{{ stats.published_quizzes }}</h2>
+    </article>
+    <article class="stat-card">
+        <p>Your Attempts</p>
+        <h2>{{ stats.attempts }}</h2>
+    </article>
+    <article class="stat-card">
+        <p>Avg. Score</p>
+        <h2>{{ stats.avg_percent }}%</h2>
+    </article>
+</section>
+
+<section class="card-shell">
+    <div class="card-shell-header">
+        <h3>Your Quizzes</h3>
+    </div>
+
+    {% if quizzes %}
+        <div class="quiz-grid">
+            {% for quiz in quizzes %}
+                <article class="quiz-tile">
+                    <div class="tile-head">
+                        <h4>{{ quiz.title }}</h4>
+                        <span class="status {{ quiz.status }}">{{ quiz.status|capitalize }}</span>
+                    </div>
+
+                    <p class="muted">{{ quiz.description or "No description provided." }}</p>
+
+                    <div class="meta-row">
+                        <span>Code: <strong>{{ quiz.quiz_code }}</strong></span>
+                        <button type="button" class="btn link copy-btn" data-code="{{ quiz.quiz_code }}">Copy</button>
+                    </div>
+
+                    <div class="meta-row">
+                        <span>{{ quiz.question_count }} questions</span>
+                        <span>{{ quiz.attempts_count }} attempts</span>
+                    </div>
+
+                    <div class="tile-actions">
+                        <a href="{{ url_for('add_question', quiz_id=quiz.id) }}" class="btn ghost">Edit Questions</a>
+                        <a href="{{ url_for('play_quiz', quiz_id=quiz.id) }}" class="btn ghost">Preview</a>
+                        {% if quiz.status != 'published' %}
+                            <form method="POST" action="{{ url_for('publish_quiz', quiz_id=quiz.id) }}">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <button type="submit" class="btn primary">Publish</button>
+                            </form>
+                        {% endif %}
+                        <form method="POST" action="{{ url_for('delete_quiz', quiz_id=quiz.id) }}" class="confirm-form" data-confirm="Delete this quiz permanently? This action cannot be undone.">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button type="submit" class="btn danger">Delete</button>
+                        </form>
+                    </div>
+                </article>
+            {% endfor %}
+        </div>
+    {% else %}
+        <p class="muted">No quizzes yet. Create your first one to get started.</p>
+    {% endif %}
+</section>
+
+{% endblock %}

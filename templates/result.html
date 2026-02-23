@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="card-shell narrow center-text">
+    <p class="eyebrow">Quiz Result</p>
+    <h1>{{ score }} / {{ total }}</h1>
+    <p class="muted">You scored {{ percent }}%</p>
+
+    <div class="actions-inline centered">
+        <a href="{{ url_for('play_quiz', quiz_id=quiz_id) }}" class="btn ghost">Retry</a>
+        <a href="{{ url_for('dashboard') }}" class="btn primary">Dashboard</a>
+    </div>
+</section>
+
+<section class="card-shell">
+    <div class="card-shell-header">
+        <h3>Answer Sheet</h3>
+        <p class="muted">Review your answer and the correct option for each question.</p>
+    </div>
+
+    {% if answer_sheet %}
+        <div class="answer-grid">
+            {% for item in answer_sheet %}
+                <article class="answer-card {{ 'correct' if item.is_correct else 'wrong' }}">
+                    <div class="tile-head">
+                        <h4>Q{{ item.number }}. {{ item.question }}</h4>
+                        <span class="status {{ 'published' if item.is_correct else 'draft' }}">
+                            {{ 'Correct' if item.is_correct else 'Wrong' }}
+                        </span>
+                    </div>
+
+                    <p>
+                        <strong>Your answer:</strong>
+                        {% if item.selected_text %}
+                            {{ item.selected_text }}
+                        {% else %}
+                            <span class="muted">Not answered</span>
+                        {% endif %}
+                    </p>
+                    <p><strong>Correct answer:</strong> {{ item.correct_text }}</p>
+                </article>
+            {% endfor %}
+        </div>
+    {% else %}
+        <p class="muted">No questions available for this quiz.</p>
+    {% endif %}
+</section>
+{% endblock %}

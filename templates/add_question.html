@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="card-shell narrow">
+    <div class="card-shell-header">
+        <h2>Add Questions: {{ quiz.title }}</h2>
+        <p class="muted">Each question must include 4 options and one correct answer.</p>
+    </div>
+
+    <form method="POST" class="stack-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        <label for="question">Question</label>
+        <textarea id="question" name="question" rows="3" placeholder="Write your question" required></textarea>
+
+        <label for="option_a">Option A</label>
+        <input id="option_a" type="text" name="options" required>
+
+        <label for="option_b">Option B</label>
+        <input id="option_b" type="text" name="options" required>
+
+        <label for="option_c">Option C</label>
+        <input id="option_c" type="text" name="options" required>
+
+        <label for="option_d">Option D</label>
+        <input id="option_d" type="text" name="options" required>
+
+        <label for="correct">Correct answer</label>
+        <select id="correct" name="correct">
+            <option value="0">Option A</option>
+            <option value="1">Option B</option>
+            <option value="2">Option C</option>
+            <option value="3">Option D</option>
+        </select>
+
+        <div class="actions-inline">
+            <button type="submit" class="btn primary">Add Question</button>
+            <a href="{{ url_for('dashboard') }}" class="btn ghost">Back to Dashboard</a>
+        </div>
+    </form>
+</section>
+
+<section class="card-shell">
+    <div class="card-shell-header">
+        <h3>Current Questions ({{ questions|length }})</h3>
+    </div>
+
+    {% if questions %}
+        <ul class="question-list">
+            {% for q in questions %}
+                <li>{{ loop.index }}. {{ q.question_text }}</li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p class="muted">No questions added yet.</p>
+    {% endif %}
+</section>
+{% endblock %}

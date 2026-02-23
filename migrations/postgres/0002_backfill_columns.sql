@@ -1,0 +1,9 @@
+ALTER TABLE users ADD COLUMN IF NOT EXISTS role VARCHAR(20) DEFAULT 'user';
+ALTER TABLE quizzes ADD COLUMN IF NOT EXISTS description TEXT DEFAULT '';
+ALTER TABLE quizzes ADD COLUMN IF NOT EXISTS quiz_code VARCHAR(6);
+ALTER TABLE quizzes ADD COLUMN IF NOT EXISTS status VARCHAR(20) DEFAULT 'draft';
+ALTER TABLE quizzes ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP NULL;
+
+UPDATE quizzes
+SET status = 'draft'
+WHERE status IS NULL OR status NOT IN ('draft', 'published');
